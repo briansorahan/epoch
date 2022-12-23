@@ -14,12 +14,17 @@ import (
 func main() {
 	var (
 		millis, micros bool
+		field          int
 	)
+	flag.IntVar(&field, "f", 0, "Field number (0-based index).")
 	flag.BoolVar(&millis, "millis", false, "Parse epoch time in milliseconds.")
 	flag.BoolVar(&micros, "micros", false, "Parse epoch time in microseconds.")
 	flag.Parse()
 
-	r := bufio.NewReader(os.Stdin)
+	var (
+		lineNo = 1
+		r      = bufio.NewReader(os.Stdin)
+	)
 ReadLoop:
 	for {
 		line, err := r.ReadString(0x0A)
@@ -29,9 +34,13 @@ ReadLoop:
 		if err != nil {
 			panic(err)
 		}
-		line = strings.TrimSpace(line)
+		fields := strings.Fields(line)
+		if len(fields) <= field {
+			panic(fmt.Sprintf("field %d is greater than number of fields (%d) on line %d", field, len(fields), lineNo))
+		}
+		epochString := strings.TrimSpace(fields[field])
 
-		number, err := strconv.ParseInt(line, 10, 64)
+		number, err := strconv.ParseInt(epochString, 10, 64)
 		if err != nil {
 			panic(err)
 		}
@@ -44,6 +53,8 @@ ReadLoop:
 		} else {
 			t = time.Unix(number, 0)
 		}
-		fmt.Println(t.String())
+		fields[field] = t.String()
+
+		fmt.Println(strings.Join(fields, " "))
 	}
 }
